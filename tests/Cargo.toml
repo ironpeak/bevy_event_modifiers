@@ -1,0 +1,10 @@
+[package]
+name = "tests"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy_app = { workspace = true }
+bevy_ecs = { workspace = true }
+bevy_event_modifiers = { path = "../src/bevy_event_modifiers" }
+bevy_event_modifiers_macros = { path = "../src/bevy_event_modifiers_macros" }
