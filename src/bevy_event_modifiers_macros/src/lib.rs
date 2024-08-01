@@ -94,13 +94,13 @@ pub fn derive_event_modifier_context(input: proc_macro::TokenStream) -> proc_mac
         }
 
         impl #user_impl_generics #struct_name #user_impl_generics {
-            fn system(
+            pub fn system(
                 mut p_events_in: bevy_ecs::prelude::EventReader<#input_ty>,
                 #(#system_params),*,
                 p_modifiers: bevy_ecs::prelude::Query<&#modifier_ty>,
                 mut p_events_out: bevy_ecs::prelude::EventWriter<#output_ty>,
             ) {
-                let mut context = CombatEventModifierContext {
+                let mut context = #struct_name {
                     #(#system_param_names),*,
                 };
                 let modifiers = p_modifiers
@@ -108,8 +108,8 @@ pub fn derive_event_modifier_context(input: proc_macro::TokenStream) -> proc_mac
                     .sort::<&#modifier_ty>()
                     .collect::<Vec<_>>();
                 for event in p_events_in.read() {
-                    let mut metadata = CombatEventModifierMetadata::init(&mut context, event);
-                    let mut event_out = CombatEventOut::init(&mut context, event);
+                    let mut metadata = #metadata_ty ::init(&mut context, event);
+                    let mut event_out = #output_ty ::init(&mut context, event);
                     for modifier in &modifiers {
                         (modifier.modify)(&mut context, &mut metadata, &mut event_out);
                     }
@@ -122,7 +122,7 @@ pub fn derive_event_modifier_context(input: proc_macro::TokenStream) -> proc_mac
             fn register_type(app: &mut bevy_app::prelude::App) -> &mut bevy_app::prelude::App {
                 app.add_event::<#input_ty>();
                 app.add_event::<#output_ty>();
-                app.add_systems(bevy_app::prelude::Update, #struct_name ::system);
+                app.add_systems(bevy_app::prelude::Update, #struct_name ::system.run_if(on_event::<#input_ty>()));
                 app
             }
         }

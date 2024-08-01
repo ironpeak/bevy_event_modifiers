@@ -1,53 +1,35 @@
-use bevy_app::prelude::*;
-use bevy_ecs::prelude::*;
-use bevy_event_modifiers::prelude::*;
-use bevy_event_modifiers_macros::EventModifierContext;
+use crate::prelude::*;
 
-#[derive(Component)]
-pub struct ExampleComponent;
+pub mod prelude {
+    pub(crate) use bevy_app::prelude::*;
+    pub(crate) use bevy_ecs::prelude::*;
+    pub(crate) use bevy_event_modifiers::prelude::*;
+    pub(crate) use bevy_event_modifiers_macros::EventModifierContext;
+    pub(crate) use rand::{rngs::StdRng, RngCore, SeedableRng};
+
+    pub(crate) use crate::{Armor, CriticalChance, Invulnerable, Rng};
+}
+
+mod hit_event;
 
 #[derive(Resource)]
-pub struct ExampleResource;
-
-#[derive(Event)]
-pub struct ExampleEvent;
-
-#[derive(Event)]
-pub struct CombatEventIn;
-
-#[derive(Event)]
-pub struct CombatEventOut;
-
-impl CombatEventOut {
-    fn init(context: &mut CombatEventModifierContext, event: &CombatEventIn) -> Self {
-        CombatEventOut {}
-    }
+pub(crate) struct Rng {
+    pub rng: StdRng,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum CombatEventModifierPriority {
-    Low,
-    Medium,
-    High,
+#[derive(Component)]
+pub(crate) struct Armor {
+    pub value: u32,
 }
 
-pub struct CombatEventModifierMetadata {}
-
-impl CombatEventModifierMetadata {
-    fn init(context: &mut CombatEventModifierContext, event: &CombatEventIn) -> Self {
-        CombatEventModifierMetadata {}
-    }
+#[derive(Component)]
+pub(crate) struct CriticalChance {
+    pub value: u32,
 }
 
-#[derive(EventModifierContext)]
-pub struct CombatEventModifierContext<'w, 's> {
-    pub entities: Query<'w, 's, (&'static ExampleComponent, &'static ExampleComponent)>,
-    pub resource_mut: ResMut<'w, ExampleResource>,
-    pub resource: Res<'w, ExampleResource>,
-    pub event_reader: EventReader<'w, 's, ExampleEvent>,
-    pub event_writer: EventWriter<'w, ExampleEvent>,
-}
+#[derive(Component)]
+pub(crate) struct Invulnerable {}
 
 pub fn init(app: &mut App) {
-    app.add_event_with_modifiers::<CombatEventModifierContext<'_, '_>>();
+    hit_event::init(app);
 }
