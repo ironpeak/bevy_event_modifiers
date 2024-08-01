@@ -6,6 +6,7 @@ use bevy_event_modifiers_macros::EventModifier;
 #[derive(Event)]
 pub struct CombatEventInput;
 
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum CombatEventModifierPriority {
     Low,
     Medium,
@@ -18,13 +19,15 @@ pub struct CombatEventModifierContext;
 pub struct CombatEventOutput;
 
 #[derive(EventModifier)]
-pub struct CombatEvent<'a, 'b, 'c> {
+pub struct CombatEvent<'world, 'state> {
     pub input: CombatEventInput,
+
     pub priority: CombatEventModifierPriority,
-    pub context: &'a (Query<'b, 'c, Entity>),
+    pub context: Query<'world, 'state, Entity>,
+
     pub output: CombatEventOutput,
 }
 
 pub fn init(app: &mut App) {
-    app.add_event_with_modifiers::<CombatEvent<'_, '_, '_>>();
+    app.add_event_with_modifiers::<CombatEvent<'_, '_>>();
 }
