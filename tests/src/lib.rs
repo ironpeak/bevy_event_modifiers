@@ -37,6 +37,12 @@ use bevy_event_modifiers_macros::{EventModifier, EventModifierContext};
 #[derive(Component)]
 pub struct ExampleComponent;
 
+#[derive(Resource)]
+pub struct ExampleResource;
+
+#[derive(Event)]
+pub struct ExampleEvent;
+
 #[derive(Event)]
 pub struct CombatEventIn;
 
@@ -57,6 +63,10 @@ impl CombatEventModifierMetadata {
 
 pub struct CombatEventModifierContext<'w, 's> {
     pub entities: Query<'w, 's, (&'static ExampleComponent, &'static ExampleComponent)>,
+    pub resource_mut: ResMut<'w, ExampleResource>,
+    pub resource: Res<'w, ExampleResource>,
+    pub event_reader: EventReader<'w, 's, ExampleEvent>,
+    pub event_writer: EventWriter<'w, ExampleEvent>,
 }
 pub struct CombatEventModifier {
     pub priority: CombatEventModifierPriority,
@@ -89,10 +99,20 @@ impl<'w, 's> CombatEventModifierContext<'w, 's> {
     fn system(
         mut p_events_in: bevy_ecs::prelude::EventReader<CombatEventIn>,
         entities: Query<(&'static ExampleComponent, &'static ExampleComponent)>,
+        resource_mut: ResMut<ExampleResource>,
+        resource: Res<ExampleResource>,
+        event_reader: EventReader<ExampleEvent>,
+        event_writer: EventWriter<ExampleEvent>,
         p_modifiers: bevy_ecs::prelude::Query<&CombatEventModifier>,
         mut p_events_out: bevy_ecs::prelude::EventWriter<CombatEventOut>,
     ) {
-        let mut context = CombatEventModifierContext { entities };
+        let mut context = CombatEventModifierContext {
+            entities,
+            resource_mut,
+            resource,
+            event_reader,
+            event_writer,
+        };
         let modifiers = p_modifiers
             .iter()
             .sort::<&CombatEventModifier>()
