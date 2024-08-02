@@ -135,7 +135,7 @@ pub fn derive_event_modifier_context(input: proc_macro::TokenStream) -> proc_mac
     });
 
     let output = quote! {
-        #[derive(bevy_ecs::prelude::Component)]
+        #[derive(Component)]
         pub struct #component_ty {
             pub priority: #priority_ty,
             pub modify: fn(&mut #struct_name, &mut #metadata_ty, &mut #output_ty),
@@ -165,10 +165,10 @@ pub fn derive_event_modifier_context(input: proc_macro::TokenStream) -> proc_mac
 
         impl #user_impl_generics #struct_name #user_impl_generics {
             pub fn system(
-                mut p_events_in: bevy_ecs::prelude::EventReader<#input_ty>,
+                mut p_events_in: EventReader<#input_ty>,
                 #(#system_params),*,
-                p_modifiers: bevy_ecs::prelude::Query<&#component_ty>,
-                mut p_events_out: bevy_ecs::prelude::EventWriter<#output_ty>,
+                p_modifiers: Query<&#component_ty>,
+                mut p_events_out: EventWriter<#output_ty>,
             ) {
                 let mut context = #struct_name {
                     #(#system_param_names),*,
@@ -189,10 +189,10 @@ pub fn derive_event_modifier_context(input: proc_macro::TokenStream) -> proc_mac
         }
 
         impl #user_impl_generics bevy_event_modifiers::prelude::EventModifierContext for #struct_name #user_impl_generics {
-            fn register_type(app: &mut bevy_app::prelude::App) -> &mut bevy_app::prelude::App {
+            fn register_type(app: &mut App) -> &mut App {
                 app.add_event::<#input_ty>();
                 app.add_event::<#output_ty>();
-                app.add_systems(bevy_app::prelude::Update, #struct_name ::system.run_if(on_event::<#input_ty>()));
+                app.add_systems(Update, #struct_name ::system.run_if(on_event::<#input_ty>()));
                 app
             }
         }
