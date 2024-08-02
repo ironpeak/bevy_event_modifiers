@@ -94,13 +94,13 @@ Which will generate some code, most notibly:
 ```rust
 impl<'w, 's> AttackEventContext<'w, 's> {
     pub fn system(
-        mut p_events_in: bevy_ecs::prelude::EventReader<AttackEvent>,
+        mut p_events_in: EventReader<AttackEvent>,
         r_rng: ResMut<Rng>,
         q_armor: Query<&'static Armor>,
         q_critical_chance: Query<&'static CriticalChance>,
         q_invulnarable: Query<&'static Invulnerable>,
-        p_modifiers: bevy_ecs::prelude::Query<&Modifier>,
-        mut p_events_out: bevy_ecs::prelude::EventWriter<DamageEvent>,
+        p_modifiers: Query<&Modifier>,
+        mut p_events_out: EventWriter<DamageEvent>,
     ) {
         let mut context = AttackEventContext {
             r_rng,
