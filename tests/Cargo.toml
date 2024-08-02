@@ -9,5 +9,4 @@ license = "MIT"
 bevy_app = { workspace = true }
 bevy_ecs = { workspace = true }
 bevy_event_modifiers = { path = "../src/bevy_event_modifiers" }
-bevy_event_modifiers_macros = { path = "../src/bevy_event_modifiers_macros" }
 rand = "0.8"
