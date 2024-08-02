@@ -1,14 +1,21 @@
 use crate::prelude::*;
 
 #[derive(Event)]
-pub struct HitEventIn {
+pub struct AttackEvent {
     pub attacker: Entity,
     pub target: Entity,
     pub damage: u32,
 }
 
 #[derive(EventModifierContext)]
-pub struct HitEventModifierContext<'w, 's> {
+#[modifier(
+    input = AttackEvent,
+    metadata = Metadata,
+    priority = Priority,
+    component = Modifier,
+    output = DamageEvent
+)]
+pub(crate) struct AttackEventContext<'w, 's> {
     pub r_rng: ResMut<'w, Rng>,
     pub q_armor: Query<'w, 's, &'static Armor>,
     pub q_critical_chance: Query<'w, 's, &'static CriticalChance>,
@@ -16,16 +23,16 @@ pub struct HitEventModifierContext<'w, 's> {
 }
 
 #[derive(Event)]
-pub struct HitEventOut {
+pub struct DamageEvent {
     pub attacker: Entity,
     pub target: Entity,
     pub critical: bool,
     pub damage: u32,
 }
 
-impl HitEventOut {
-    fn init(_: &mut HitEventModifierContext, event: &HitEventIn) -> Self {
-        HitEventOut {
+impl DamageEvent {
+    fn init(_: &mut AttackEventContext, event: &AttackEvent) -> Self {
+        DamageEvent {
             attacker: event.attacker,
             target: event.target,
             critical: false,
@@ -34,35 +41,31 @@ impl HitEventOut {
     }
 }
 
-pub struct HitEventModifierMetadata {}
+pub(crate) struct Metadata {}
 
-impl HitEventModifierMetadata {
-    fn init(_: &mut HitEventModifierContext, _: &HitEventIn) -> Self {
-        HitEventModifierMetadata {}
+impl Metadata {
+    fn init(_: &mut AttackEventContext, _: &AttackEvent) -> Self {
+        Metadata {}
     }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum HitEventModifierPriority {
+pub(crate) enum Priority {
     Armor,
     Critical,
     Invulnerable,
 }
 
-pub fn armor_modifier(
-    context: &mut HitEventModifierContext,
-    _: &mut HitEventModifierMetadata,
-    event: &mut HitEventOut,
-) {
+pub fn armor_modifier(context: &mut AttackEventContext, _: &mut Metadata, event: &mut DamageEvent) {
     if let Ok(armor) = context.q_armor.get(event.target) {
         event.damage = event.damage.saturating_sub(armor.value);
     }
 }
 
 pub fn critical_modifier(
-    context: &mut HitEventModifierContext,
-    _: &mut HitEventModifierMetadata,
-    event: &mut HitEventOut,
+    context: &mut AttackEventContext,
+    _: &mut Metadata,
+    event: &mut DamageEvent,
 ) {
     if let Ok(critical_chance) = context.q_critical_chance.get(event.attacker) {
         if context.r_rng.rng.next_u32() % 100 < critical_chance.value {
@@ -73,9 +76,9 @@ pub fn critical_modifier(
 }
 
 pub fn invulnerable_modifier(
-    context: &mut HitEventModifierContext,
-    _: &mut HitEventModifierMetadata,
-    event: &mut HitEventOut,
+    context: &mut AttackEventContext,
+    _: &mut Metadata,
+    event: &mut DamageEvent,
 ) {
     if let Ok(_) = context.q_invulnarable.get(event.target) {
         event.damage = 0;
@@ -86,22 +89,22 @@ pub fn setup(mut commands: Commands) {
     commands.insert_resource(Rng {
         rng: StdRng::seed_from_u64(rand::thread_rng().next_u64()),
     });
-    commands.spawn(HitEventModifier {
-        priority: HitEventModifierPriority::Armor,
+    commands.spawn(Modifier {
+        priority: Priority::Armor,
         modify: armor_modifier,
     });
-    commands.spawn(HitEventModifier {
-        priority: HitEventModifierPriority::Critical,
+    commands.spawn(Modifier {
+        priority: Priority::Critical,
         modify: critical_modifier,
     });
-    commands.spawn(HitEventModifier {
-        priority: HitEventModifierPriority::Invulnerable,
+    commands.spawn(Modifier {
+        priority: Priority::Invulnerable,
         modify: invulnerable_modifier,
     });
 }
 
 pub fn init(app: &mut App) {
-    app.add_event_with_modifiers::<HitEventModifierContext<'_, '_>>();
+    app.add_event_with_modifiers::<AttackEventContext<'_, '_>>();
 
     app.add_systems(Startup, setup);
 }
@@ -133,27 +136,27 @@ mod tests {
             rng: StdRng::seed_from_u64(0),
         });
 
-        world.spawn(HitEventModifier {
-            priority: HitEventModifierPriority::Armor,
+        world.spawn(Modifier {
+            priority: Priority::Armor,
             modify: armor_modifier,
         });
 
-        world.insert_resource(Events::<HitEventIn>::default());
-        world.insert_resource(Events::<HitEventOut>::default());
+        world.insert_resource(Events::<AttackEvent>::default());
+        world.insert_resource(Events::<DamageEvent>::default());
 
-        let mut events_in = world.resource_mut::<Events<HitEventIn>>();
-        events_in.send(HitEventIn {
+        let mut events_in = world.resource_mut::<Events<AttackEvent>>();
+        events_in.send(AttackEvent {
             attacker,
             target,
             damage: 10,
         });
 
-        let action = world.register_system(HitEventModifierContext::system);
+        let action = world.register_system(AttackEventContext::system);
         world.run_system(action).unwrap();
 
-        let events_out = world.resource::<Events<HitEventOut>>();
+        let events_out = world.resource::<Events<DamageEvent>>();
         let mut event_reader = events_out.get_reader();
-        let events_out: Vec<&HitEventOut> = event_reader.read(events_out).collect();
+        let events_out: Vec<&DamageEvent> = event_reader.read(events_out).collect();
 
         assert_eq!(events_out.len(), 1);
         assert_eq!(events_out[0].attacker, attacker);
@@ -185,27 +188,27 @@ mod tests {
             rng: StdRng::seed_from_u64(0),
         });
 
-        world.spawn(HitEventModifier {
-            priority: HitEventModifierPriority::Critical,
+        world.spawn(Modifier {
+            priority: Priority::Critical,
             modify: critical_modifier,
         });
 
-        world.insert_resource(Events::<HitEventIn>::default());
-        world.insert_resource(Events::<HitEventOut>::default());
+        world.insert_resource(Events::<AttackEvent>::default());
+        world.insert_resource(Events::<DamageEvent>::default());
 
-        let mut events_in = world.resource_mut::<Events<HitEventIn>>();
-        events_in.send(HitEventIn {
+        let mut events_in = world.resource_mut::<Events<AttackEvent>>();
+        events_in.send(AttackEvent {
             attacker,
             target,
             damage: 10,
         });
 
-        let action = world.register_system(HitEventModifierContext::system);
+        let action = world.register_system(AttackEventContext::system);
         world.run_system(action).unwrap();
 
-        let events_out = world.resource::<Events<HitEventOut>>();
+        let events_out = world.resource::<Events<DamageEvent>>();
         let mut event_reader = events_out.get_reader();
-        let events_out: Vec<&HitEventOut> = event_reader.read(events_out).collect();
+        let events_out: Vec<&DamageEvent> = event_reader.read(events_out).collect();
 
         assert_eq!(events_out.len(), 1);
         assert_eq!(events_out[0].attacker, attacker);
@@ -237,27 +240,27 @@ mod tests {
             rng: StdRng::seed_from_u64(0),
         });
 
-        world.spawn(HitEventModifier {
-            priority: HitEventModifierPriority::Invulnerable,
+        world.spawn(Modifier {
+            priority: Priority::Invulnerable,
             modify: invulnerable_modifier,
         });
 
-        world.insert_resource(Events::<HitEventIn>::default());
-        world.insert_resource(Events::<HitEventOut>::default());
+        world.insert_resource(Events::<AttackEvent>::default());
+        world.insert_resource(Events::<DamageEvent>::default());
 
-        let mut events_in = world.resource_mut::<Events<HitEventIn>>();
-        events_in.send(HitEventIn {
+        let mut events_in = world.resource_mut::<Events<AttackEvent>>();
+        events_in.send(AttackEvent {
             attacker,
             target,
             damage: 10,
         });
 
-        let action = world.register_system(HitEventModifierContext::system);
+        let action = world.register_system(AttackEventContext::system);
         world.run_system(action).unwrap();
 
-        let events_out = world.resource::<Events<HitEventOut>>();
+        let events_out = world.resource::<Events<DamageEvent>>();
         let mut event_reader = events_out.get_reader();
-        let events_out: Vec<&HitEventOut> = event_reader.read(events_out).collect();
+        let events_out: Vec<&DamageEvent> = event_reader.read(events_out).collect();
 
         assert_eq!(events_out.len(), 1);
         assert_eq!(events_out[0].attacker, attacker);
@@ -285,35 +288,35 @@ mod tests {
             rng: StdRng::seed_from_u64(0),
         });
 
-        world.spawn(HitEventModifier {
-            priority: HitEventModifierPriority::Armor,
+        world.spawn(Modifier {
+            priority: Priority::Armor,
             modify: armor_modifier,
         });
-        world.spawn(HitEventModifier {
-            priority: HitEventModifierPriority::Critical,
+        world.spawn(Modifier {
+            priority: Priority::Critical,
             modify: critical_modifier,
         });
-        world.spawn(HitEventModifier {
-            priority: HitEventModifierPriority::Invulnerable,
+        world.spawn(Modifier {
+            priority: Priority::Invulnerable,
             modify: invulnerable_modifier,
         });
 
-        world.insert_resource(Events::<HitEventIn>::default());
-        world.insert_resource(Events::<HitEventOut>::default());
+        world.insert_resource(Events::<AttackEvent>::default());
+        world.insert_resource(Events::<DamageEvent>::default());
 
-        let mut events_in = world.resource_mut::<Events<HitEventIn>>();
-        events_in.send(HitEventIn {
+        let mut events_in = world.resource_mut::<Events<AttackEvent>>();
+        events_in.send(AttackEvent {
             attacker,
             target,
             damage: 12,
         });
 
-        let action = world.register_system(HitEventModifierContext::system);
+        let action = world.register_system(AttackEventContext::system);
         world.run_system(action).unwrap();
 
-        let events_out = world.resource::<Events<HitEventOut>>();
+        let events_out = world.resource::<Events<DamageEvent>>();
         let mut event_reader = events_out.get_reader();
-        let events_out: Vec<&HitEventOut> = event_reader.read(events_out).collect();
+        let events_out: Vec<&DamageEvent> = event_reader.read(events_out).collect();
 
         assert_eq!(events_out.len(), 1);
         assert_eq!(events_out[0].attacker, attacker);

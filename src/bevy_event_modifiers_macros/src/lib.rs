@@ -1,13 +1,89 @@
 extern crate proc_macro;
 
 use proc_macro::TokenStream;
-use proc_macro2::Span;
 use quote::{quote, ToTokens};
-use syn::{parse_macro_input, Data, DeriveInput, Ident, Type};
+use syn::{
+    parse::{Parse, ParseStream},
+    parse_macro_input,
+    punctuated::Punctuated,
+    Attribute, Data, DeriveInput, Ident, Meta, Token, Type,
+};
 
-#[proc_macro_derive(EventModifierContext)]
+#[derive(Debug)]
+struct EventModifierArg {
+    pub(crate) name: Ident,
+    pub(crate) value: Type,
+}
+
+impl Parse for EventModifierArg {
+    fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
+        let name = input.parse()?;
+        input.parse::<Token![=]>()?;
+        let value = input.parse()?;
+        Ok(Self { name, value })
+    }
+}
+
+struct EventModifierAttributes {
+    component: Type,
+    input: Type,
+    metadata: Type,
+    output: Type,
+    priority: Type,
+}
+
+fn parse_attributes(attrs: &[Attribute]) -> EventModifierAttributes {
+    for attr in attrs {
+        match &attr.meta {
+            Meta::List(list) => {
+                for segment in &list.path.segments {
+                    if segment.ident != "modifier" {
+                        continue;
+                    }
+                }
+            }
+            _ => continue,
+        }
+        let mut component = None;
+        let mut input = None;
+        let mut metadata = None;
+        let mut output = None;
+        let mut priority = None;
+        for arg in attr
+            .parse_args_with(
+                Punctuated::<EventModifierArg, syn::Token![,]>::parse_separated_nonempty,
+            )
+            .expect("Failed to parse arguments")
+        {
+            match arg.name.to_string().as_str() {
+                "component" => component = Some(arg.value),
+                "input" => input = Some(arg.value),
+                "metadata" => metadata = Some(arg.value),
+                "output" => output = Some(arg.value),
+                "priority" => priority = Some(arg.value),
+                _ => panic!("Unknown argument `{}`", arg.name),
+            }
+        }
+        if let (Some(component), Some(input), Some(metadata), Some(output), Some(priority)) =
+            (component, input, metadata, output, priority)
+        {
+            return EventModifierAttributes {
+                component,
+                input,
+                metadata,
+                output,
+                priority,
+            };
+        }
+    }
+    panic!("Missing required attribute `modifier` with arguments `input`, `metadata`, `modifier`, `output`, `priority`")
+}
+
+#[proc_macro_derive(EventModifierContext, attributes(modifier))]
 pub fn derive_event_modifier_context(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
+
+    let attributes = parse_attributes(&ast.attrs);
 
     let (user_impl_generics, _, _) = ast.generics.split_for_impl();
 
@@ -18,17 +94,11 @@ pub fn derive_event_modifier_context(input: proc_macro::TokenStream) -> proc_mac
         _ => panic!("Only structs are supported"),
     };
 
-    let struct_name_str = struct_name.to_string();
-
-    let base_name = struct_name_str
-        .strip_suffix("ModifierContext")
-        .expect("Struct name must end with 'ModifierContext'");
-
-    let input_ty = Ident::new(&format!("{}In", base_name), Span::call_site());
-    let modifier_ty = Ident::new(&format!("{}Modifier", base_name), Span::call_site());
-    let priority_ty = Ident::new(&format!("{}ModifierPriority", base_name), Span::call_site());
-    let metadata_ty = Ident::new(&format!("{}ModifierMetadata", base_name), Span::call_site());
-    let output_ty = Ident::new(&format!("{}Out", base_name), Span::call_site());
+    let component_ty = attributes.component;
+    let input_ty = attributes.input;
+    let priority_ty = attributes.priority;
+    let metadata_ty = attributes.metadata;
+    let output_ty = attributes.output;
 
     let system_param_names = data.fields.iter().map(|field| {
         let field_ident = field.ident.as_ref().unwrap();
@@ -66,28 +136,28 @@ pub fn derive_event_modifier_context(input: proc_macro::TokenStream) -> proc_mac
 
     let output = quote! {
         #[derive(bevy_ecs::prelude::Component)]
-        pub struct #modifier_ty {
+        pub struct #component_ty {
             pub priority: #priority_ty,
             pub modify: fn(&mut #struct_name, &mut #metadata_ty, &mut #output_ty),
         }
 
-        impl Ord for #modifier_ty {
+        impl Ord for #component_ty {
             fn cmp(&self, other: &Self) -> std::cmp::Ordering {
                 self.priority.cmp(&other.priority)
             }
         }
 
-        impl PartialOrd for #modifier_ty {
+        impl PartialOrd for #component_ty {
             fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
                 self.priority.partial_cmp(&other.priority)
             }
         }
 
-        impl Eq for #modifier_ty {
+        impl Eq for #component_ty {
 
         }
 
-        impl PartialEq for #modifier_ty {
+        impl PartialEq for #component_ty {
             fn eq(&self, other: &Self) -> bool {
                 self.priority == other.priority
             }
@@ -97,7 +167,7 @@ pub fn derive_event_modifier_context(input: proc_macro::TokenStream) -> proc_mac
             pub fn system(
                 mut p_events_in: bevy_ecs::prelude::EventReader<#input_ty>,
                 #(#system_params),*,
-                p_modifiers: bevy_ecs::prelude::Query<&#modifier_ty>,
+                p_modifiers: bevy_ecs::prelude::Query<&#component_ty>,
                 mut p_events_out: bevy_ecs::prelude::EventWriter<#output_ty>,
             ) {
                 let mut context = #struct_name {
@@ -105,7 +175,7 @@ pub fn derive_event_modifier_context(input: proc_macro::TokenStream) -> proc_mac
                 };
                 let modifiers = p_modifiers
                     .iter()
-                    .sort::<&#modifier_ty>()
+                    .sort::<&#component_ty>()
                     .collect::<Vec<_>>();
                 for event in p_events_in.read() {
                     let mut metadata = #metadata_ty ::init(&mut context, event);

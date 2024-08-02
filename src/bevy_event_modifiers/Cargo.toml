@@ -7,3 +7,4 @@ license = "MIT"
 [dependencies]
 bevy_app = { workspace = true }
 bevy_ecs = { workspace = true }
+bevy_event_modifiers_macros = { path = "../bevy_event_modifiers_macros" }
