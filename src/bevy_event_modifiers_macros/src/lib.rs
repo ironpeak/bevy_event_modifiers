@@ -101,9 +101,9 @@ fn remove_system_param_lifetimes(field: &Type) -> Type {
                         ident: segment.ident.clone(),
                         arguments: PathArguments::AngleBracketed(AngleBracketedGenericArguments {
                             colon2_token: None,
-                            lt_token: path_args.lt_token.clone(),
+                            lt_token: path_args.lt_token,
                             args,
-                            gt_token: path_args.gt_token.clone(),
+                            gt_token: path_args.gt_token,
                         }),
                     });
                     return Type::Path(TypePath {
@@ -124,9 +124,9 @@ fn remove_system_param_lifetimes(field: &Type) -> Type {
                         ident: segment.ident.clone(),
                         arguments: PathArguments::AngleBracketed(AngleBracketedGenericArguments {
                             colon2_token: None,
-                            lt_token: path_args.lt_token.clone(),
+                            lt_token: path_args.lt_token,
                             args,
-                            gt_token: path_args.gt_token.clone(),
+                            gt_token: path_args.gt_token,
                         }),
                     });
                     return Type::Path(TypePath {
