@@ -20,6 +20,7 @@ pub(crate) struct AttackEventContext<'w, 's> {
     pub q_armor: Query<'w, 's, &'static Armor>,
     pub q_critical_chance: Query<'w, 's, &'static CriticalChance>,
     pub q_invulnarable: Query<'w, 's, &'static Invulnerable>,
+    pub e_invulnerability: EventWriter<'w, InvulnerabilityEvent>,
 }
 
 #[derive(Event)]
@@ -31,13 +32,13 @@ pub struct DamageEvent {
 }
 
 impl DamageEvent {
-    fn init(_: &mut AttackEventContext, event: &AttackEvent) -> Self {
-        DamageEvent {
+    fn init(_: &mut AttackEventContext, event: &AttackEvent) -> Option<Self> {
+        Some(DamageEvent {
             attacker: event.attacker,
             target: event.target,
             critical: false,
             damage: event.damage,
-        }
+        })
     }
 }
 
@@ -81,6 +82,7 @@ pub fn invulnerable_modifier(
     event: &mut DamageEvent,
 ) {
     if let Ok(_) = context.q_invulnarable.get(event.target) {
+        context.e_invulnerability.send(InvulnerabilityEvent {});
         event.damage = 0;
     }
 }
