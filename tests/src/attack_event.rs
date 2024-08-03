@@ -143,6 +143,7 @@ mod tests {
             modify: armor_modifier,
         });
 
+        world.insert_resource(Events::<InvulnerabilityEvent>::default());
         world.insert_resource(Events::<AttackEvent>::default());
         world.insert_resource(Events::<DamageEvent>::default());
 
@@ -195,6 +196,7 @@ mod tests {
             modify: critical_modifier,
         });
 
+        world.insert_resource(Events::<InvulnerabilityEvent>::default());
         world.insert_resource(Events::<AttackEvent>::default());
         world.insert_resource(Events::<DamageEvent>::default());
 
@@ -247,6 +249,7 @@ mod tests {
             modify: invulnerable_modifier,
         });
 
+        world.insert_resource(Events::<InvulnerabilityEvent>::default());
         world.insert_resource(Events::<AttackEvent>::default());
         world.insert_resource(Events::<DamageEvent>::default());
 
@@ -303,6 +306,7 @@ mod tests {
             modify: invulnerable_modifier,
         });
 
+        world.insert_resource(Events::<InvulnerabilityEvent>::default());
         world.insert_resource(Events::<AttackEvent>::default());
         world.insert_resource(Events::<DamageEvent>::default());
 

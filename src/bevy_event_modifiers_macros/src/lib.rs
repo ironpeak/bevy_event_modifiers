@@ -1,7 +1,7 @@
 extern crate proc_macro;
 
 use proc_macro::TokenStream;
-use quote::{quote, ToTokens};
+use quote::quote;
 use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input,
@@ -84,11 +84,11 @@ fn remove_system_param_lifetimes(field: &Type) -> Type {
     match &field {
         Type::Path(path) => {
             if path.path.segments.len() != 1 {
-                panic!("Unsupported field type {:?}", field);
+                panic!("Unsupported field type");
             }
             let segment = &path.path.segments[0];
             let PathArguments::AngleBracketed(path_args) = &segment.arguments else {
-                panic!("Unsupported field type {:?}", field);
+                panic!("Unsupported field type");
             };
             match segment.ident.to_string().as_str() {
                 "EventWriter" | "Res" | "ResMut" => {
@@ -137,10 +137,10 @@ fn remove_system_param_lifetimes(field: &Type) -> Type {
                         },
                     });
                 }
-                _ => panic!("Unsupported field type {:?}", field),
+                _ => panic!("Unsupported field type"),
             }
         }
-        _ => panic!("Unsupported field type {:?}", field),
+        _ => panic!("Unsupported field type"),
     }
 }
 
@@ -174,28 +174,7 @@ pub fn derive_event_modifier_context(input: proc_macro::TokenStream) -> proc_mac
 
     let system_params = data.fields.iter().map(|field| {
         let field_ident = field.ident.as_ref().expect("Field must have an identifier");
-
-        remove_system_param_lifetimes(&field.ty);
-
-        // TODO: would prefer to do this logic using AST
-        let field_ty_str = format!("{}", field.ty.to_token_stream())
-            .replace("\n", "")
-            .replace("\r\n", "")
-            .replace("& ", "&")
-            .replace(" & ", "&")
-            .replace("< ", "<")
-            .replace(" <", "<")
-            .replace("> ", ">")
-            .replace(" >", ">")
-            .replace(", ", ",")
-            .replace(" ,", ",")
-            .replace("'s ", "")
-            .replace("'w ", "")
-            .replace("'s,", "")
-            .replace("'w,", "");
-
-        let field_ty = syn::parse_str::<Type>(&field_ty_str).expect("Failed to parse type");
-
+        let field_ty = remove_system_param_lifetimes(&field.ty);
         quote! {
             #field_ident: #field_ty,
         }
