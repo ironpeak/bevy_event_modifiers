@@ -103,7 +103,7 @@ pub fn derive_event_modifier_context(input: proc_macro::TokenStream) -> proc_mac
     let system_param_names = data.fields.iter().map(|field| {
         let field_ident = field.ident.as_ref().unwrap();
         quote! {
-            #field_ident
+            #field_ident,
         }
     });
 
@@ -130,7 +130,7 @@ pub fn derive_event_modifier_context(input: proc_macro::TokenStream) -> proc_mac
         let field_ty = syn::parse_str::<Type>(&field_ty_str).expect("Failed to parse type");
 
         quote! {
-            #field_ident: #field_ty
+            #field_ident: #field_ty,
         }
     });
 
@@ -166,12 +166,12 @@ pub fn derive_event_modifier_context(input: proc_macro::TokenStream) -> proc_mac
         impl #user_impl_generics #struct_name #user_impl_generics {
             pub fn system(
                 mut p_events_in: EventReader<#input_ty>,
-                #(#system_params),*,
+                #(#system_params)*
                 p_modifiers: Query<&#component_ty>,
                 mut p_events_out: EventWriter<#output_ty>,
             ) {
                 let mut context = #struct_name {
-                    #(#system_param_names),*,
+                    #(#system_param_names)*
                 };
                 let modifiers = p_modifiers
                     .iter()
