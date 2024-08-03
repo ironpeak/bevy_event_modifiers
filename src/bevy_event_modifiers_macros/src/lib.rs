@@ -6,10 +6,11 @@ use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input,
     punctuated::Punctuated,
-    Attribute, Data, DeriveInput, Ident, Meta, Token, Type,
+    token::{Comma, PathSep},
+    AngleBracketedGenericArguments, Attribute, Data, DeriveInput, GenericArgument, Ident, Meta,
+    Path, PathArguments, PathSegment, Token, Type, TypePath,
 };
 
-#[derive(Debug)]
 struct EventModifierArg {
     pub(crate) name: Ident,
     pub(crate) value: Type,
@@ -76,7 +77,71 @@ fn parse_attributes(attrs: &[Attribute]) -> EventModifierAttributes {
             };
         }
     }
-    panic!("Missing required attribute `modifier` with arguments `input`, `metadata`, `modifier`, `output`, `priority`")
+    panic!("Missing required attribute `modifier` with arguments `component`, `input`, `metadata`, `output`, `priority`")
+}
+
+fn remove_system_param_lifetimes(field: &Type) -> Type {
+    match &field {
+        Type::Path(path) => {
+            if path.path.segments.len() != 1 {
+                panic!("Unsupported field type {:?}", field);
+            }
+            let segment = &path.path.segments[0];
+            let PathArguments::AngleBracketed(path_args) = &segment.arguments else {
+                panic!("Unsupported field type {:?}", field);
+            };
+            match segment.ident.to_string().as_str() {
+                "EventWriter" | "Res" | "ResMut" => {
+                    let mut segments = Punctuated::<PathSegment, PathSep>::new();
+                    let mut args = Punctuated::<GenericArgument, Comma>::new();
+                    for arg in path_args.args.iter().skip(1) {
+                        args.push(arg.clone());
+                    }
+                    segments.push(PathSegment {
+                        ident: segment.ident.clone(),
+                        arguments: PathArguments::AngleBracketed(AngleBracketedGenericArguments {
+                            colon2_token: None,
+                            lt_token: path_args.lt_token.clone(),
+                            args,
+                            gt_token: path_args.gt_token.clone(),
+                        }),
+                    });
+                    return Type::Path(TypePath {
+                        qself: None,
+                        path: Path {
+                            leading_colon: None,
+                            segments,
+                        },
+                    });
+                }
+                "Query" => {
+                    let mut segments = Punctuated::<PathSegment, PathSep>::new();
+                    let mut args = Punctuated::<GenericArgument, Comma>::new();
+                    for arg in path_args.args.iter().skip(2) {
+                        args.push(arg.clone());
+                    }
+                    segments.push(PathSegment {
+                        ident: segment.ident.clone(),
+                        arguments: PathArguments::AngleBracketed(AngleBracketedGenericArguments {
+                            colon2_token: None,
+                            lt_token: path_args.lt_token.clone(),
+                            args,
+                            gt_token: path_args.gt_token.clone(),
+                        }),
+                    });
+                    return Type::Path(TypePath {
+                        qself: None,
+                        path: Path {
+                            leading_colon: None,
+                            segments,
+                        },
+                    });
+                }
+                _ => panic!("Unsupported field type {:?}", field),
+            }
+        }
+        _ => panic!("Unsupported field type {:?}", field),
+    }
 }
 
 #[proc_macro_derive(EventModifierContext, attributes(modifier))]
@@ -109,6 +174,8 @@ pub fn derive_event_modifier_context(input: proc_macro::TokenStream) -> proc_mac
 
     let system_params = data.fields.iter().map(|field| {
         let field_ident = field.ident.as_ref().expect("Field must have an identifier");
+
+        remove_system_param_lifetimes(&field.ty);
 
         // TODO: would prefer to do this logic using AST
         let field_ty_str = format!("{}", field.ty.to_token_stream())
@@ -165,8 +232,8 @@ pub fn derive_event_modifier_context(input: proc_macro::TokenStream) -> proc_mac
 
         impl #user_impl_generics #struct_name #user_impl_generics {
             pub fn system(
-                mut p_events_in: EventReader<#input_ty>,
                 #(#system_params)*
+                mut p_events_in: EventReader<#input_ty>,
                 p_modifiers: Query<&#component_ty>,
                 mut p_events_out: EventWriter<#output_ty>,
             ) {
@@ -178,8 +245,10 @@ pub fn derive_event_modifier_context(input: proc_macro::TokenStream) -> proc_mac
                     .sort::<&#component_ty>()
                     .collect::<Vec<_>>();
                 for event in p_events_in.read() {
+                    let Some(mut event_out) = #output_ty ::init(&mut context, event) else {
+                        continue;
+                    };
                     let mut metadata = #metadata_ty ::init(&mut context, event);
-                    let mut event_out = #output_ty ::init(&mut context, event);
                     for modifier in &modifiers {
                         (modifier.modify)(&mut context, &mut metadata, &mut event_out);
                     }

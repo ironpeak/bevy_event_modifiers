@@ -39,13 +39,13 @@ pub struct DamageEvent {
 }
 
 impl DamageEvent {
-    fn init(_: &mut AttackEventContext, event: &AttackEvent) -> Self {
-        DamageEvent {
+    fn init(_: &mut AttackEventContext, event: &AttackEvent) -> Option<Self> {
+        Some(DamageEvent {
             attacker: event.attacker,
             target: event.target,
             critical: false,
             damage: event.damage,
-        }
+        })
     }
 }
 
@@ -94,11 +94,11 @@ Which will generate some code, most notibly:
 ```rust
 impl<'w, 's> AttackEventContext<'w, 's> {
     pub fn system(
-        mut p_events_in: EventReader<AttackEvent>,
         r_rng: ResMut<Rng>,
         q_armor: Query<&'static Armor>,
         q_critical_chance: Query<&'static CriticalChance>,
         q_invulnarable: Query<&'static Invulnerable>,
+        mut p_events_in: EventReader<AttackEvent>,
         p_modifiers: Query<&Modifier>,
         mut p_events_out: EventWriter<DamageEvent>,
     ) {
@@ -110,8 +110,10 @@ impl<'w, 's> AttackEventContext<'w, 's> {
         };
         let modifiers = p_modifiers.iter().sort::<&Modifier>().collect::<Vec<_>>();
         for event in p_events_in.read() {
+            let Some(mut event_out) = DamageEvent::init(&mut context, event) else {
+                continue;
+            };
             let mut metadata = Metadata::init(&mut context, event);
-            let mut event_out = DamageEvent::init(&mut context, event);
             for modifier in &modifiers {
                 (modifier.modify)(&mut context, &mut metadata, &mut event_out);
             }

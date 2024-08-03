@@ -6,7 +6,7 @@ pub mod prelude {
     pub(crate) use bevy_event_modifiers::prelude::*;
     pub(crate) use rand::{rngs::StdRng, RngCore, SeedableRng};
 
-    pub(crate) use crate::{Armor, CriticalChance, Invulnerable, Rng};
+    pub(crate) use crate::{Armor, CriticalChance, InvulnerabilityEvent, Invulnerable, Rng};
 }
 
 mod attack_event;
@@ -28,6 +28,9 @@ pub(crate) struct CriticalChance {
 
 #[derive(Component)]
 pub(crate) struct Invulnerable {}
+
+#[derive(Event)]
+pub(crate) struct InvulnerabilityEvent {}
 
 pub fn init(app: &mut App) {
     attack_event::init(app);
