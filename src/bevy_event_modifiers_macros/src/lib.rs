@@ -51,9 +51,7 @@ fn parse_attributes(attrs: &[Attribute]) -> EventModifierAttributes {
         let mut output = None;
         let mut priority = None;
         for arg in attr
-            .parse_args_with(
-                Punctuated::<EventModifierArg, syn::Token![,]>::parse_separated_nonempty,
-            )
+            .parse_args_with(Punctuated::<EventModifierArg, syn::Token![,]>::parse_terminated)
             .expect("Failed to parse arguments")
         {
             match arg.name.to_string().as_str() {
