@@ -104,13 +104,13 @@ fn remove_system_param_lifetimes(field: &Type) -> Type {
                             gt_token: path_args.gt_token,
                         }),
                     });
-                    return Type::Path(TypePath {
+                    Type::Path(TypePath {
                         qself: None,
                         path: Path {
                             leading_colon: None,
                             segments,
                         },
-                    });
+                    })
                 }
                 "Query" => {
                     let mut segments = Punctuated::<PathSegment, PathSep>::new();
@@ -127,13 +127,13 @@ fn remove_system_param_lifetimes(field: &Type) -> Type {
                             gt_token: path_args.gt_token,
                         }),
                     });
-                    return Type::Path(TypePath {
+                    Type::Path(TypePath {
                         qself: None,
                         path: Path {
                             leading_colon: None,
                             segments,
                         },
-                    });
+                    })
                 }
                 _ => panic!("Unsupported field type"),
             }
