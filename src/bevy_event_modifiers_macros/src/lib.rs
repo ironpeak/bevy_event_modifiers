@@ -51,9 +51,7 @@ fn parse_attributes(attrs: &[Attribute]) -> EventModifierAttributes {
         let mut output = None;
         let mut priority = None;
         for arg in attr
-            .parse_args_with(
-                Punctuated::<EventModifierArg, syn::Token![,]>::parse_separated_nonempty,
-            )
+            .parse_args_with(Punctuated::<EventModifierArg, syn::Token![,]>::parse_terminated)
             .expect("Failed to parse arguments")
         {
             match arg.name.to_string().as_str() {
@@ -101,18 +99,18 @@ fn remove_system_param_lifetimes(field: &Type) -> Type {
                         ident: segment.ident.clone(),
                         arguments: PathArguments::AngleBracketed(AngleBracketedGenericArguments {
                             colon2_token: None,
-                            lt_token: path_args.lt_token.clone(),
+                            lt_token: path_args.lt_token,
                             args,
-                            gt_token: path_args.gt_token.clone(),
+                            gt_token: path_args.gt_token,
                         }),
                     });
-                    return Type::Path(TypePath {
+                    Type::Path(TypePath {
                         qself: None,
                         path: Path {
                             leading_colon: None,
                             segments,
                         },
-                    });
+                    })
                 }
                 "Query" => {
                     let mut segments = Punctuated::<PathSegment, PathSep>::new();
@@ -124,18 +122,18 @@ fn remove_system_param_lifetimes(field: &Type) -> Type {
                         ident: segment.ident.clone(),
                         arguments: PathArguments::AngleBracketed(AngleBracketedGenericArguments {
                             colon2_token: None,
-                            lt_token: path_args.lt_token.clone(),
+                            lt_token: path_args.lt_token,
                             args,
-                            gt_token: path_args.gt_token.clone(),
+                            gt_token: path_args.gt_token,
                         }),
                     });
-                    return Type::Path(TypePath {
+                    Type::Path(TypePath {
                         qself: None,
                         path: Path {
                             leading_colon: None,
                             segments,
                         },
-                    });
+                    })
                 }
                 _ => panic!("Unsupported field type"),
             }
