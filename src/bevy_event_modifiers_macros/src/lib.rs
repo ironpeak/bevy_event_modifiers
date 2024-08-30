@@ -112,7 +112,7 @@ fn remove_system_param_lifetimes(field: &Type) -> Type {
                         },
                     })
                 }
-                "Query" => {
+                "Commands" | "Query" => {
                     let mut segments = Punctuated::<PathSegment, PathSep>::new();
                     let mut args = Punctuated::<GenericArgument, Comma>::new();
                     for arg in path_args.args.iter().skip(2) {
