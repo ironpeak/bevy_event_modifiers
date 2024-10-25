@@ -2,7 +2,13 @@
 name = "bevy_event_modifiers_macros"
 version = "0.1.0"
 edition = "2021"
+description = "Event modifier pattern macros for Bevy"
+repository = "https://github.com/ironpeak/bevy_event_modifiers"
+authors = ["Hrafn Orri Hrafnkelsson <hrafn@vidfjord.is>"]
 license = "MIT"
+readme = "README.md"
+keywords = ["gamedev", "events", "bevy"]
+categories = ["game-development"]
 
 [lib]
 proc-macro = true
