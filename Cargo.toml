@@ -7,8 +7,8 @@ members = [
 ]
 
 [workspace.dependencies]
-bevy_app = { git = "https://github.com/bevyengine/bevy.git", tag = "v0.15.0-rc.2", default-features = false }
-bevy_ecs = { git = "https://github.com/bevyengine/bevy.git", tag = "v0.15.0-rc.2", default-features = false }
+bevy_app = { version = "0.15.0-rc.2" }
+bevy_ecs = { version = "0.15.0-rc.2" }
 proc-macro2 = "1"
 quote = "1"
 syn = { version = "2" }
