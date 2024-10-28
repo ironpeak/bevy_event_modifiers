@@ -158,7 +158,7 @@ mod tests {
         world.run_system(action).unwrap();
 
         let events_out = world.resource::<Events<DamageEvent>>();
-        let mut event_reader = events_out.get_reader();
+        let mut event_reader = events_out.get_cursor();
         let events_out: Vec<&DamageEvent> = event_reader.read(events_out).collect();
 
         assert_eq!(events_out.len(), 1);
@@ -211,7 +211,7 @@ mod tests {
         world.run_system(action).unwrap();
 
         let events_out = world.resource::<Events<DamageEvent>>();
-        let mut event_reader = events_out.get_reader();
+        let mut event_reader = events_out.get_cursor();
         let events_out: Vec<&DamageEvent> = event_reader.read(events_out).collect();
 
         assert_eq!(events_out.len(), 1);
@@ -264,7 +264,7 @@ mod tests {
         world.run_system(action).unwrap();
 
         let events_out = world.resource::<Events<DamageEvent>>();
-        let mut event_reader = events_out.get_reader();
+        let mut event_reader = events_out.get_cursor();
         let events_out: Vec<&DamageEvent> = event_reader.read(events_out).collect();
 
         assert_eq!(events_out.len(), 1);
@@ -321,7 +321,7 @@ mod tests {
         world.run_system(action).unwrap();
 
         let events_out = world.resource::<Events<DamageEvent>>();
-        let mut event_reader = events_out.get_reader();
+        let mut event_reader = events_out.get_cursor();
         let events_out: Vec<&DamageEvent> = event_reader.read(events_out).collect();
 
         assert_eq!(events_out.len(), 1);

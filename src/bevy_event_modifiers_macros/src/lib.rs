@@ -238,7 +238,7 @@ pub fn derive_event_modifier_context(input: proc_macro::TokenStream) -> proc_mac
             fn register_type(app: &mut App) -> &mut App {
                 app.add_event::<#input_ty>();
                 app.add_event::<#output_ty>();
-                app.add_systems(Update, #struct_name ::system.run_if(on_event::<#input_ty>()));
+                app.add_systems(Update, #struct_name ::system.run_if(on_event::<#input_ty>));
                 app
             }
         }
