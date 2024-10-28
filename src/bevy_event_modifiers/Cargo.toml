@@ -1,6 +1,6 @@
 [package]
 name = "bevy_event_modifiers"
-version = "0.1.0"
+version = "0.2.0-rc2"
 edition = "2021"
 description = "Event modifier pattern for Bevy"
 repository = "https://github.com/ironpeak/bevy_event_modifiers"
