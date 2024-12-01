@@ -13,4 +13,4 @@ categories = ["game-development"]
 [dependencies]
 bevy_app = { workspace = true }
 bevy_ecs = { workspace = true }
-bevy_event_modifiers_macros = { path = "../bevy_event_modifiers_macros" }
+bevy_event_modifiers_macros = { version = "0.2.0", path = "../bevy_event_modifiers_macros" }
